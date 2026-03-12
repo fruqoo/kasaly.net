@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="tr">
 
 <head>
@@ -1928,7 +1928,10 @@
   </div>
 
   <!-- Kasaly DB Layer (MongoDB API) -->
-  <script src="db.js" defer></script>
+  <script>
+  window.KASALY_API_URL = 'https://kasaly-net.onrender.com';
+</script>
+<script src="db.js" defer></script>
   <script src="kasatakipsystem.js" defer></script>
 
 </body>
