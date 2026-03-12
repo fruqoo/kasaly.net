@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <meta name="description"
+    content="Kasaly Gizlilik Politikası — Kullanıcı verilerinin nasıl işlendiği hakkında şeffaf bilgi.">
+  <title>Gizlilik Politikası — Kasaly</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --green: #22c55e;
+      --bg: #070d1a;
+      --card: rgba(255, 255, 255, .04);
+      --card-b: rgba(255, 255, 255, .08);
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --dim: #94a3b8
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box
+    }
+
+    html {
+      scroll-behavior: smooth
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+      line-height: 1.7
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background: radial-gradient(ellipse 70% 50% at 15% 5%, rgba(34, 197, 94, .06) 0%, transparent 60%), radial-gradient(ellipse 60% 70% at 85% 95%, rgba(59, 130, 246, .05) 0%, transparent 60%)
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px
+    }
+
+    ::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, .03)
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, .12);
+      border-radius: 10px
+    }
+
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 999;
+      padding: 0 40px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(7, 13, 26, .88);
+      backdrop-filter: blur(18px);
+      border-bottom: 1px solid rgba(255, 255, 255, .06)
+    }
+
+    .nav-logo {
+      font-family: 'Syne', sans-serif;
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      color: #fff;
+      text-decoration: none
+    }
+
+    .nav-logo span {
+      color: var(--green)
+    }
+
+    .nav-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--dim);
+      text-decoration: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .05);
+      border: 1px solid rgba(255, 255, 255, .08);
+      transition: all .2s
+    }
+
+    .nav-back:hover {
+      background: rgba(255, 255, 255, .1);
+      color: #fff
+    }
+
+    .page-hero {
+      padding: 80px 40px 48px;
+      max-width: 900px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1
+    }
+
+    .page-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 14px;
+      background: rgba(59, 130, 246, .1);
+      border: 1px solid rgba(59, 130, 246, .22);
+      border-radius: 50px;
+      font-size: 11px;
+      color: #3b82f6;
+      font-weight: 700;
+      margin-bottom: 20px;
+      letter-spacing: .5px
+    }
+
+    .page-title {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(28px, 5vw, 52px);
+      font-weight: 800;
+      letter-spacing: -1.5px;
+      margin-bottom: 14px
+    }
+
+    .page-subtitle {
+      color: var(--dim);
+      font-size: 15px
+    }
+
+    .page-updated {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 8px
+    }
+
+    .content {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 40px 100px;
+      position: relative;
+      z-index: 1
+    }
+
+    .toc {
+      background: var(--card);
+      border: 1px solid var(--card-b);
+      border-radius: 14px;
+      padding: 24px 28px;
+      margin-bottom: 52px
+    }
+
+    .toc-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      color: #3b82f6;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      margin-bottom: 14px
+    }
+
+    .toc ol {
+      padding-left: 20px;
+      color: var(--dim);
+      font-size: 14px;
+      line-height: 2
+    }
+
+    .toc ol li a {
+      color: var(--dim);
+      text-decoration: none;
+      transition: color .2s
+    }
+
+    .toc ol li a:hover {
+      color: var(--green)
+    }
+
+    section.legal {
+      margin-bottom: 48px
+    }
+
+    h2.sec-head {
+      font-family: 'Syne', sans-serif;
+      font-size: 22px;
+      font-weight: 800;
+      margin-bottom: 16px;
+      color: #fff;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, .07)
+    }
+
+    h3.sub-head {
+      font-family: 'Syne', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      margin: 22px 0 10px;
+      color: #fff
+    }
+
+    p {
+      color: var(--dim);
+      font-size: 14.5px;
+      margin-bottom: 14px
+    }
+
+    ul.legal-list,
+    ol.legal-list {
+      padding-left: 24px;
+      color: var(--dim);
+      font-size: 14.5px;
+      margin-bottom: 14px;
+      line-height: 1.9
+    }
+
+    .info-box {
+      background: rgba(34, 197, 94, .07);
+      border: 1px solid rgba(34, 197, 94, .2);
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin: 20px 0
+    }
+
+    .info-box p {
+      color: var(--green);
+      margin: 0;
+      font-size: 13px;
+      font-weight: 500
+    }
+
+    .warn-box {
+      background: rgba(245, 158, 11, .07);
+      border: 1px solid rgba(245, 158, 11, .2);
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin: 20px 0
+    }
+
+    .warn-box p {
+      color: #f59e0b;
+      margin: 0;
+      font-size: 13px;
+      font-weight: 500
+    }
+
+    .highlight-box {
+      background: rgba(59, 130, 246, .07);
+      border: 1px solid rgba(59, 130, 246, .2);
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin: 24px 0
+    }
+
+    .highlight-box p {
+      color: #93c5fd;
+      margin: 0;
+      font-size: 14px
+    }
+
+    footer {
+      border-top: 1px solid rgba(255, 255, 255, .06);
+      padding: 28px 40px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      position: relative;
+      z-index: 1
+    }
+
+    footer a {
+      color: var(--green);
+      text-decoration: none
+    }
+
+    @media(max-width:768px) {
+      nav {
+        padding: 0 16px
+      }
+
+      .page-hero,
+      .content {
+        padding-left: 20px;
+        padding-right: 20px
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <nav>
+    <a class="nav-logo" href="index.html">Kasa<span>ly</span></a>
+    <a class="nav-back" href="index.html">← Ana Sayfaya Dön</a>
+  </nav>
+
+  <div class="page-hero">
+    <div class="page-badge">🔒 Gizlilik</div>
+    <div class="page-title">Gizlilik Politikası</div>
+    <p class="page-subtitle">Kasaly olarak gizliliğinize saygı duyuyor ve verilerinizi nasıl ele aldığımız konusunda
+      şeffaf olmayı önemsiyoruz.</p>
+    <p class="page-updated">Son güncelleme: 10 Mart 2026 · Sürüm 1.0</p>
+  </div>
+
+  <div class="content">
+    <div class="toc">
+      <div class="toc-title">📌 İçindekiler</div>
+      <ol>
+        <li><a href="#ozet">Kısa Özet</a></li>
+        <li><a href="#toplanan">Toplanan Veriler</a></li>
+        <li><a href="#depolama">Veri Depolama</a></li>
+        <li><a href="#paylasim">Veri Paylaşımı</a></li>
+        <li><a href="#guvenlik">Veri Güvenliği</a></li>
+        <li><a href="#cerezler">Çerezler ve Takip</a></li>
+        <li><a href="#haklar">Kullanıcı Hakları</a></li>
+        <li><a href="#cocuklar">Çocuklara Yönelik Gizlilik</a></li>
+        <li><a href="#degisiklikler">Değişiklikler</a></li>
+        <li><a href="#iletisim">İletişim</a></li>
+      </ol>
+    </div>
+
+    <div class="highlight-box">
+      <p>🛡️ <strong>Özet:</strong> Kasaly, verilerinizi yüksek güvenlikli ve modern bulut veritabanı altyapısında
+        (Supabase) güvenle saklamaktadır. Verileriniz üçüncü taraflarla paylaşılmaz ve reklam amacıyla kullanılmaz.</p>
+    </div>
+
+    <section class="legal" id="ozet">
+      <h2 class="sec-head">1. Kısa Özet</h2>
+      <p>Kasaly'nin gizlilik yaklaşımı şu üç ilkeye dayanır:</p>
+      <ul class="legal-list">
+        <li>☁️ <strong style="color:#fff">Bulut Güvenliği:</strong> Verileriniz gelişmiş güvenlikli veritabanı
+          altyapımızda güvenle barındırılır.</li>
+        <li>🚫 <strong style="color:#fff">Sıfır Satış:</strong> Kullanıcı verisi hiçbir zaman satılmaz veya kiralanmaz.
+        </li>
+        <li>👁️ <strong style="color:#fff">Şeffaflık:</strong> Verilerinizle ne yaptığımızı her zaman açıkça belirtiriz.
+        </li>
+      </ul>
+    </section>
+
+    <section class="legal" id="toplanan">
+      <h2 class="sec-head">2. Toplanan Veriler</h2>
+      <h3 class="sub-head">2.1 Kayıt Bilgileri</h3>
+      <p>Hesap oluştururken şu bilgiler cihazınıza yerel olarak kaydedilir:</p>
+      <ul class="legal-list">
+        <li>Ad ve soyad</li>
+        <li>Kullanıcı adı (e-posta biçiminde olabilir)</li>
+        <li>SHA-256 ile hashlenmiş şifre (düz metin olarak saklanmaz)</li>
+        <li>Hesap türü (bireysel / şirket)</li>
+        <li>Şirket bilgileri (kurumsal hesaplar için)</li>
+      </ul>
+      <h3 class="sub-head">2.2 Finansal Veriler</h3>
+      <p>Uygulama kullanımı sırasında girdiğiniz veriler (işlem tutarları, kategoriler, borçlar, faturalar vb.) şifreli
+        olarak bulut veritabanında saklanır.</p>
+      <h3 class="sub-head">2.3 Teknik Veriler</h3>
+      <p>Kasaly, uygulama performansı veya kullanım analizi için herhangi bir analitik veri <strong
+          style="color:#fff">toplamaz.</strong> Sadece sistem logları kendi işlemleriniz için kendi panelinizde tutulur.
+      </p>
+    </section>
+
+    <section class="legal" id="depolama">
+      <h2 class="sec-head">3. Veri Depolama</h2>
+      <p>Tüm kullanıcı verileri, dünya standartlarında güvenlik sunan modern bulut veritabanı altyapısı (Supabase)
+        üzerinde <strong style="color:#fff">güvenle</strong> saklanır:</p>
+      <ul class="legal-list">
+        <li><strong style="color:#fff">Bulut Veritabanı:</strong> Tüm işlem, borç, hedef, fatura ve kullanıcı verileri
+          asenkron olarak buluta yazılır.</li>
+        <li><strong style="color:#fff">Yerel Önbellek:</strong> İnternet kesintilerine ve gecikmelere karşı tarayıcınız
+          geçici olarak bu verileri önbellekler.</li>
+      </ul>
+      <div class="warn-box">
+        <p>ℹ️ Verileriniz buluta direkt senkronize olduğu için başka bir hesaptan veya cihazdan sadece KasaLy hesabınıza
+          giriş yaparak bütün verinize erişebilir kaldığınız yerden işinize devam edebilirsiniz.</p>
+      </div>
+      <p>Kasaly'nin sunduğu bu bulut altyapısı, önceki versiyonlardaki tarayıcı temizlendiğinde yaşanan veri kaybı
+        risklerini tamamen ortadan kaldırmıştır.</p>
+    </section>
+
+    <section class="legal" id="paylasim">
+      <h2 class="sec-head">4. Veri Paylaşımı</h2>
+      <div class="info-box">
+        <p>✅ Kasaly, kullanıcı verilerini kesinlikle üçüncü taraflarla paylaşmaz, satmaz veya ticari amaçla kullanmaz.
+        </p>
+      </div>
+      <p>Uygulama şu üçüncü taraf kaynakları yalnızca frontend kütüphane olarak kullanmaktadır (veri iletimi söz konusu
+        değildir):</p>
+      <ul class="legal-list">
+        <li><strong>Google Fonts:</strong> Yazı tipi yükleme (Syne, DM Sans) — Google'ın CDN politikası geçerlidir</li>
+        <li><strong>Chart.js CDN:</strong> Grafik kütüphanesi — veri akışı yoktur</li>
+      </ul>
+      <p>Bu kütüphanelerin yüklenmesi sırasında tarayıcınızın IP adresi ilgili CDN sunucularına iletilir. Bu durum
+        standart tarayıcı davranışıdır ve Kasaly'nin kontrolünde değildir.</p>
+    </section>
+
+    <section class="legal" id="guvenlik">
+      <h2 class="sec-head">5. Veri Güvenliği</h2>
+      <p>Kasaly aşağıdaki güvenlik önlemlerini uygular:</p>
+      <ul class="legal-list">
+        <li>Tüm şifreler SHA-256 kriptografik hash fonksiyonu ile işlenerek sunucularımıza şifreli gönderilir</li>
+        <li>Kullanıcı veritabanında satır seviyesinde güvenlik (RLS) kuralları işletilir</li>
+        <li>XSS (Cross-Site Scripting) saldırılarına karşı giriş sanitizasyonu uygulanır</li>
+        <li>Oturum zaman aşımı (5 dakika hareketsizlik) koruması mevcuttur</li>
+      </ul>
+      <div class="warn-box">
+        <p>⚠️ Hesabınız şifrenizle korunduğundan, şifrenizi kimseyle paylaşmamanız ve güvenilir olmayan cihazlarda
+          uygulamanızı açık bırakmamanız gerekmektedir.</p>
+      </div>
+    </section>
+
+    <section class="legal" id="cerezler">
+      <h2 class="sec-head">6. Çerezler ve Takip</h2>
+      <p>Kasaly, reklam veya takip amaçlı çerezler kullanmaz. Oturum yönetimi için yalnızca şu mekanizmalar kullanılır:
+      </p>
+      <ul class="legal-list">
+        <li><code
+            style="background:rgba(255,255,255,.06);padding:2px 6px;border-radius:4px">localStorage['kt_rem']</code> —
+          "Beni hatırla" tokeni (30 gün)</li>
+        <li><code
+            style="background:rgba(255,255,255,.06);padding:2px 6px;border-radius:4px">sessionStorage['kt_sess']</code>
+          — Aktif oturum (sekme kapılınca silinir)</li>
+      </ul>
+      <p>Bu veriler yalnızca oturum yönetimi için kullanılır ve hiçbir şekilde analitik veya profilleme amacıyla
+        işlenmez.</p>
+    </section>
+
+    <section class="legal" id="haklar">
+      <h2 class="sec-head">7. Kullanıcı Hakları</h2>
+      <p>KVKK ve GDPR kapsamında sahip olduğunuz haklar:</p>
+      <ul class="legal-list">
+        <li>✅ <strong style="color:#fff">Erişim Hakkı:</strong> Verilerinizi Ayarlar → Veri Yönetimi bölümünden JSON
+          olarak indirebilirsiniz.</li>
+        <li>✅ <strong style="color:#fff">Düzeltme Hakkı:</strong> Tüm verilerinizi uygulama içinden düzenleyebilirsiniz.
+        </li>
+        <li>✅ <strong style="color:#fff">Silme Hakkı:</strong> Ayarlar → Sıfırla ile tüm verilerinizi kalıcı olarak
+          silebilirsiniz.</li>
+        <li>✅ <strong style="color:#fff">Taşıma Hakkı:</strong> Verilerinizi JSON veya CSV formatında dışa
+          aktarabilirsiniz.</li>
+      </ul>
+      <div class="info-box">
+        <p>ℹ️ Verileriniz tamamen kontrolünüz altındadır ve istediğiniz zaman tüm sistemden kalıcı olarak
+          silebilirsiniz.</p>
+      </div>
+    </section>
+
+    <section class="legal" id="cocuklar">
+      <h2 class="sec-head">8. Çocuklara Yönelik Gizlilik</h2>
+      <p>Kasaly, 13 yaşın altındaki çocuklara yönelik hizmet sunmamaktadır. Bu yaş grubuna ait kişisel verilerin kasıtlı
+        olarak toplandığına dair bir bilgimiz bulunmamaktadır. Ebeveynler veya veliler bu konuda endişe duyuyorsa lütfen
+        iletişime geçin.</p>
+    </section>
+
+    <section class="legal" id="degisiklikler">
+      <h2 class="sec-head">9. Değişiklikler</h2>
+      <p>Bu gizlilik politikası zaman zaman güncellenebilir. Önemli değişiklikler uygulama içinde duyurulacaktır.
+        Politikanın güncel halini her zaman bu sayfadan kontrol edebilirsiniz.</p>
+    </section>
+
+    <section class="legal" id="iletisim">
+      <h2 class="sec-head">10. İletişim</h2>
+      <p>Gizlilik politikasıyla ilgili soru ve talepleriniz için:</p>
+      <ul class="legal-list">
+        <li>Uygulama içi geri bildirim özelliğini kullanabilirsiniz.</li>
+        <li>Veri silme veya erişim taleplerinizi Ayarlar menüsünden gerçekleştirebilirsiniz.</li>
+      </ul>
+      <p style="margin-top:24px">Ayrıca bkz: <a href="terms.html"
+          style="color:var(--green);text-decoration:none;font-weight:600">Kullanım Koşulları →</a></p>
+    </section>
+  </div>
+
+  <footer>
+    <p>© 2026 Kasaly. Tüm hakları saklıdır. &nbsp;·&nbsp; <a href="terms.html">Kullanım Koşulları</a> &nbsp;·&nbsp; <a
+        href="index.html">Ana Sayfa</a></p>
+  </footer>
+
+  <script>
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+      a.addEventListener('click', e => {
+        e.preventDefault();
+        const target = document.querySelector(a.getAttribute('href'));
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+  </script>
+</body>
+
+</html>

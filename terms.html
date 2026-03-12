@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <meta name="description"
+    content="Kasaly Kullanım Koşulları — Uygulamayı kullanırken kabul etmeniz gereken şartlar ve koşullar.">
+  <title>Kullanım Koşulları — Kasaly</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --green: #22c55e;
+      --bg: #070d1a;
+      --card: rgba(255, 255, 255, .04);
+      --card-b: rgba(255, 255, 255, .08);
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --dim: #94a3b8
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box
+    }
+
+    html {
+      scroll-behavior: smooth
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+      line-height: 1.7
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background: radial-gradient(ellipse 70% 50% at 15% 5%, rgba(34, 197, 94, .06) 0%, transparent 60%), radial-gradient(ellipse 60% 70% at 85% 95%, rgba(59, 130, 246, .05) 0%, transparent 60%)
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px
+    }
+
+    ::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, .03)
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, .12);
+      border-radius: 10px
+    }
+
+    /* NAV */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 999;
+      padding: 0 40px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(7, 13, 26, .88);
+      backdrop-filter: blur(18px);
+      border-bottom: 1px solid rgba(255, 255, 255, .06)
+    }
+
+    .nav-logo {
+      font-family: 'Syne', sans-serif;
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      color: #fff;
+      text-decoration: none
+    }
+
+    .nav-logo span {
+      color: var(--green)
+    }
+
+    .nav-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--dim);
+      text-decoration: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .05);
+      border: 1px solid rgba(255, 255, 255, .08);
+      transition: all .2s
+    }
+
+    .nav-back:hover {
+      background: rgba(255, 255, 255, .1);
+      color: #fff
+    }
+
+    /* HERO */
+    .page-hero {
+      padding: 80px 40px 48px;
+      max-width: 900px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1
+    }
+
+    .page-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 14px;
+      background: rgba(34, 197, 94, .1);
+      border: 1px solid rgba(34, 197, 94, .22);
+      border-radius: 50px;
+      font-size: 11px;
+      color: var(--green);
+      font-weight: 700;
+      margin-bottom: 20px;
+      letter-spacing: .5px
+    }
+
+    .page-title {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(28px, 5vw, 52px);
+      font-weight: 800;
+      letter-spacing: -1.5px;
+      margin-bottom: 14px
+    }
+
+    .page-subtitle {
+      color: var(--dim);
+      font-size: 15px
+    }
+
+    .page-updated {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 8px
+    }
+
+    /* CONTENT */
+    .content {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 40px 100px;
+      position: relative;
+      z-index: 1
+    }
+
+    .toc {
+      background: var(--card);
+      border: 1px solid var(--card-b);
+      border-radius: 14px;
+      padding: 24px 28px;
+      margin-bottom: 52px
+    }
+
+    .toc-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--green);
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      margin-bottom: 14px
+    }
+
+    .toc ol {
+      padding-left: 20px;
+      color: var(--dim);
+      font-size: 14px;
+      line-height: 2
+    }
+
+    .toc ol li a {
+      color: var(--dim);
+      text-decoration: none;
+      transition: color .2s
+    }
+
+    .toc ol li a:hover {
+      color: var(--green)
+    }
+
+    section.legal {
+      margin-bottom: 48px
+    }
+
+    h2.sec-head {
+      font-family: 'Syne', sans-serif;
+      font-size: 22px;
+      font-weight: 800;
+      margin-bottom: 16px;
+      color: #fff;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, .07)
+    }
+
+    h3.sub-head {
+      font-family: 'Syne', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      margin: 22px 0 10px;
+      color: #fff
+    }
+
+    p {
+      color: var(--dim);
+      font-size: 14.5px;
+      margin-bottom: 14px
+    }
+
+    ul.legal-list,
+    ol.legal-list {
+      padding-left: 24px;
+      color: var(--dim);
+      font-size: 14.5px;
+      margin-bottom: 14px;
+      line-height: 1.9
+    }
+
+    .info-box {
+      background: rgba(34, 197, 94, .07);
+      border: 1px solid rgba(34, 197, 94, .2);
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin: 20px 0
+    }
+
+    .info-box p {
+      color: var(--green);
+      margin: 0;
+      font-size: 13px;
+      font-weight: 500
+    }
+
+    .warn-box {
+      background: rgba(245, 158, 11, .07);
+      border: 1px solid rgba(245, 158, 11, .2);
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin: 20px 0
+    }
+
+    .warn-box p {
+      color: #f59e0b;
+      margin: 0;
+      font-size: 13px;
+      font-weight: 500
+    }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid rgba(255, 255, 255, .06);
+      padding: 28px 40px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      position: relative;
+      z-index: 1
+    }
+
+    footer a {
+      color: var(--green);
+      text-decoration: none
+    }
+
+    .footer a:hover {
+      text-decoration: underline
+    }
+
+    @media(max-width:768px) {
+      nav {
+        padding: 0 16px
+      }
+
+      .page-hero,
+      .content {
+        padding-left: 20px;
+        padding-right: 20px
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <nav>
+    <a class="nav-logo" href="index.html">Kasa<span>ly</span></a>
+    <a class="nav-back" href="index.html">← Ana Sayfaya Dön</a>
+  </nav>
+
+  <div class="page-hero">
+    <div class="page-badge">📋 Yasal Belge</div>
+    <div class="page-title">Kullanım Koşulları</div>
+    <p class="page-subtitle">Kasaly uygulamasını kullanmadan önce lütfen bu koşulları dikkatlice okuyun.</p>
+    <p class="page-updated">Son güncelleme: 10 Mart 2026 · Sürüm 1.0</p>
+  </div>
+
+  <div class="content">
+    <div class="toc">
+      <div class="toc-title">📌 İçindekiler</div>
+      <ol class="toc ol">
+        <li><a href="#taraflar">Taraflar ve Tanımlar</a></li>
+        <li><a href="#kapsam">Hizmetin Kapsamı</a></li>
+        <li><a href="#veri">Veri ve Gizlilik</a></li>
+        <li><a href="#kullanim">Kabul Edilebilir Kullanım</a></li>
+        <li><a href="#hesap">Hesap Sorumluluğu</a></li>
+        <li><a href="#fikri">Fikri Mülkiyet</a></li>
+        <li><a href="#sorumluluk">Sorumluluk Sınırlaması</a></li>
+        <li><a href="#degisiklik">Değişiklikler</a></li>
+        <li><a href="#iletisim">İletişim</a></li>
+      </ol>
+    </div>
+
+    <div class="info-box">
+      <p>✅ Bu belgeyi okuyup hesap oluşturduktan/giriş yaptıktan sonra bu koşulları kabul etmiş sayılırsınız. Koşulları
+        kabul etmiyorsanız lütfen uygulamayı kullanmayın.</p>
+    </div>
+
+    <section class="legal" id="taraflar">
+      <h2 class="sec-head">1. Taraflar ve Tanımlar</h2>
+      <p><strong style="color:#fff">Kasaly</strong>, bireyler ve işletmeler için geliştirilmiş bulut tabanlı modern bir
+        finansal takip ve yönetim uygulamasıdır. Resmi bir şirket yapısına sahip olmayıp bağımsız bir yazılım projesi
+        olarak sunulmaktadır. Bu belgede:</p>
+      <ul class="legal-list">
+        <li><strong style="color:#fff">Uygulama:</strong> Kasaly web uygulaması ve tüm ilgili bileşenleri</li>
+        <li><strong style="color:#fff">Kullanıcı:</strong> Uygulamayı kullanan gerçek kişi</li>
+        <li><strong style="color:#fff">Geliştirici:</strong> Kasaly projesini oluşturan ve yöneten kişi(ler)</li>
+        <li><strong style="color:#fff">Veri:</strong> Kullanıcının uygulama üzerinde girdiği her türlü bilgi</li>
+      </ul>
+    </section>
+
+    <section class="legal" id="kapsam">
+      <h2 class="sec-head">2. Hizmetin Kapsamı</h2>
+      <p>Kasaly aşağıdaki temel özellikleri sunar:</p>
+      <ul class="legal-list">
+        <li>Kişisel ve kurumsal gelir/gider takibi</li>
+        <li>Borç ve alacak yönetimi</li>
+        <li>Fatura oluşturma ve takip (kurumsal hesaplar)</li>
+        <li>Çalışan ve maaş yönetimi (kurumsal hesaplar)</li>
+        <li>Finansal hedef belirleme ve takip</li>
+        <li>Görsel analizler ve raporlama</li>
+      </ul>
+      <p>Kasaly tamamen ücretsizdir. Tüm özellikler, kayıt ve ek ücret gerektirmeksizin kullanılabilir. Geliştirici,
+        ileride premium özellikler sunma veya ücretlendirme modeli ekleme hakkını saklı tutar; bu durumda mevcut belge
+        güncellenecek ve kullanıcılar bilgilendirilecektir.</p>
+    </section>
+
+    <section class="legal" id="veri">
+      <h2 class="sec-head">3. Veri ve Gizlilik</h2>
+      <h3 class="sub-head">3.1 Veri Depolama</h3>
+      <p>Kasaly, kullanıcı güvenliğini ve verilerin her cihazdan erişilebilirliğini sağlamak için verilerinizi
+        modern, şifreli ve güvenli bulut veritabanında (Supabase altyapısı ile) saklar.</p>
+      <div class="warn-box">
+        <p>ℹ️ Verileriniz buluta senkronize olduğu için farklı cihazlardan dilediğiniz zaman erişebilir ve cihaz
+          arızalarında veri kaybı yaşamazsınız.</p>
+      </div>
+      <h3 class="sub-head">3.2 Veri Paylaşımı</h3>
+      <p>Kasaly, kullanıcı verilerini <strong style="color:#fff">hiçbir üçüncü tarafla paylaşmaz, satmaz veya ticari
+          amaçla kullanmaz.</strong> Uygulama, çevrimiçi analitik veya izleme araçlarına sahip değildir.</p>
+      <h3 class="sub-head">3.3 Şifre Güvenliği</h3>
+      <p>Kullanıcı şifreler SHA-256 algoritmasıyla yüksek güvenlik standartlarında şifrelenerek saklanır. Şifreler
+        hiçbir zaman düz metin olarak
+        depolanmaz veya arka planda loglara kaydedilmez.
+      </p>
+    </section>
+
+    <section class="legal" id="kullanim">
+      <h2 class="sec-head">4. Kabul Edilebilir Kullanım</h2>
+      <p>Kullanıcı, Kasaly'yi aşağıdaki amaçlarla <strong style="color:#ef4444">kullanamaz:</strong></p>
+      <ul class="legal-list">
+        <li>Yasadışı finansal işlemler veya kara para aklama</li>
+        <li>Başkası adına ve izinsiz hesap oluşturma</li>
+        <li>Uygulamanın kaynak kodunu tersine mühendislik ile çözme (açık kaynak kapsamı dışında)</li>
+        <li>Uygulamaya zarar vermeye yönelik girişimler (DoS, veri bozma vb.)</li>
+        <li>Başkalarının gizlilik haklarını ihlal eden bilgilerin girilmesi</li>
+      </ul>
+      <p>Bu koşulları ihlal eden hesaplar, herhangi bir bildirim yapılmaksızın askıya alınabilir veya silinebilir.</p>
+    </section>
+
+    <section class="legal" id="hesap">
+      <h2 class="sec-head">5. Hesap Sorumluluğu</h2>
+      <p>Kullanıcı, hesap güvenliğinden tamamen kendisi sorumludur. Bu kapsamda:</p>
+      <ul class="legal-list">
+        <li>Güçlü ve benzersiz bir şifre kullanmak kullanıcının sorumluluğundadır.</li>
+        <li>Hesap kimlik bilgilerinin üçüncü kişilerle paylaşılması tavsiye edilmez.</li>
+        <li>Hesaba yetkisiz erişim şüphesi durumunda şifrenin derhal değiştirilmesi gerekmektedir.</li>
+        <li>Takım yetkilendirme özelliği kullanılırken eklenen kişilerin güvenilirliği değerlendirilmelidir.</li>
+      </ul>
+      <p>Hesap kimlik bilgilerinin kaybolması durumunda mevcut veriler "Şifremi Unuttum" ekranından kurtarılabilir;
+        ancak şifre tamamen unutulursa veri erişimi mümkün olmayabilir.</p>
+    </section>
+
+    <section class="legal" id="fikri">
+      <h2 class="sec-head">6. Fikri Mülkiyet</h2>
+      <p>Kasaly uygulamasının tasarımı, kodu, arayüzü ve tüm içerikleri geliştiriciye aittir. Kullanıcı:</p>
+      <ul class="legal-list">
+        <li>Uygulamayı kişisel veya ticari amaçla özgürce <strong style="color:#fff">kullanabilir</strong>.</li>
+        <li>Uygulamayı veya içeriğini izinsiz olarak <strong style="color:#ef4444">çoğaltamaz, dağıtamaz veya türev ürün
+            oluşturamaz.</strong></li>
+        <li>Kasaly marka adını ve logosunu izinsiz kullanamaz.</li>
+      </ul>
+      <p>Kullanıcının uygulama üzerinde girdiği tüm veriler münhasıran kullanıcıya aittir.</p>
+    </section>
+
+    <section class="legal" id="sorumluluk">
+      <h2 class="sec-head">7. Sorumluluk Sınırlaması</h2>
+      <div class="warn-box">
+        <p>⚠️ Kasaly, ücretsiz ve "olduğu gibi" (as-is) sunulmaktadır. Uygulama bir finansal danışmanlık hizmeti
+          değildir.</p>
+      </div>
+      <p>Geliştirici aşağıdaki durumlardan sorumlu tutulamaz:</p>
+      <ul class="legal-list">
+        <li>Kullanıcının verilerini kaybetmesi (tarayıcı temizleme, cihaz arızası vb.)</li>
+        <li>Uygulama kesintileri veya beklenmedik hatalar</li>
+        <li>Kullanıcının yanlış finansal kararlar alması</li>
+        <li>Üçüncü taraf kütüphane veya servis (Chart.js, Google Fonts vb.) kaynaklı sorunlar</li>
+      </ul>
+      <p>Uygulama üzerinden gerçekleştirilen finansal işlemler veya kararlar tamamen kullanıcının sorumluluğundadır.
+        Kasaly bir muhasebe yazılımı değil, bir takip aracıdır.</p>
+    </section>
+
+    <section class="legal" id="degisiklik">
+      <h2 class="sec-head">8. Değişiklikler</h2>
+      <p>Bu kullanım koşulları zaman zaman güncellenebilir. Önemli değişikliklerde uygulama içi bildirim yapılabilir. En
+        güncel versiyona bu sayfa üzerinden ulaşılabilir. Uygulamayı kullanmaya devam etmek, güncel koşulları kabul
+        etmek anlamına gelir.</p>
+      <div class="info-box">
+        <p>ℹ️ Koşullarda yapılan değişiklikleri takip etmek için bu sayfayı düzenli olarak ziyaret etmenizi öneririz.
+        </p>
+      </div>
+    </section>
+
+    <section class="legal" id="iletisim">
+      <h2 class="sec-head">9. İletişim</h2>
+      <p>Kullanım koşullarıyla ilgili soru, görüş veya şikayetleriniz için:</p>
+      <ul class="legal-list">
+        <li>Uygulama içi geri bildirim kanallarını kullanabilirsiniz.</li>
+        <li>Bu belge veya gizlilik politikasıyla ilgili sorularınız için geliştirici ile iletişime geçebilirsiniz.</li>
+      </ul>
+      <p style="margin-top:24px">Ayrıca bkz: <a href="privacy.html"
+          style="color:var(--green);text-decoration:none;font-weight:600">Gizlilik Politikası →</a></p>
+    </section>
+  </div>
+
+  <footer>
+    <p>© 2026 Kasaly. Tüm hakları saklıdır. &nbsp;·&nbsp; <a href="privacy.html">Gizlilik Politikası</a> &nbsp;·&nbsp;
+      <a href="index.html">Ana Sayfa</a>
+    </p>
+  </footer>
+
+  <script>
+    // Smooth scroll for TOC links
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+      a.addEventListener('click', e => {
+        e.preventDefault();
+        const target = document.querySelector(a.getAttribute('href'));
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+  </script>
+</body>
+
+</html>
