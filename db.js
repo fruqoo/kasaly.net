@@ -1,12 +1,11 @@
 /**
- * Kasaly — MongoDB API Storage Layer (v6.0)
+ * Kasaly — MongoDB API Storage Layer (v7.0)
  * ──────────────────────────────────────────
- * Değişiklikler v6:
- *   - getUsers() → sadece admin çağırabilir (KVKK)
- *   - deleteAccount() yeni endpoint'i destekler
- *   - adminResetPassword() eklendi
- *   - refreshSession() — session süresi dolunca yenile
- *   - Hata mesajları daha açıklayıcı
+ * Değişiklikler v7:
+ *   - S1: Team management methods (teamInvite, teamRespond, teamCancelInvite, teamRemoveMember, getTeamAccounts)
+ *   - S4: Admin username hardcoded kaldırıldı (window.KASALY_ADMIN_USER zorunlu)
+ *   - S6: CSRF token support (_api helper'a eklendi)
+ *   - S8: Security answer verification - raw answer gönder (SHA-256 kaldırıldı, server bcrypt kullanıyor)
  */
 (function (global) {
   'use strict';
@@ -21,17 +20,41 @@
   const _mem = Object.create(null);
   let _uid = null;
   let _writeTimer = null;
+  let _csrfToken = null; // S6: CSRF token
 
-  /* ─── Fetch helper ─── */
+  /* ─── S6: Fetch CSRF token ─── */
+  async function _fetchCsrfToken() {
+    try {
+      const res = await fetch(API + '/api/csrf-token', {
+        credentials: 'include'
+      });
+      if (res.ok) {
+        const json = await res.json();
+        _csrfToken = json.csrfToken;
+      }
+    } catch (e) {
+      console.warn('[KasaDB] CSRF token fetch failed', e);
+    }
+  }
+
+  /* ─── S6: Fetch helper with CSRF token ─── */
   async function _api(method, path, body) {
     const opts = {
       method,
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' }
     };
+
+    // S6: Add CSRF token for non-GET requests
+    if (method !== 'GET' && _csrfToken) {
+      opts.headers['X-CSRF-Token'] = _csrfToken;
+    }
+
     if (body !== undefined) opts.body = JSON.stringify(body);
+
     const res = await fetch(API + path, opts);
     const json = await res.json().catch(() => ({}));
+
     if (!res.ok) throw new Error(json.error || 'Sunucu hatası (' + res.status + ')');
     return json;
   }
@@ -74,16 +97,26 @@
   /* ─── Init ─── */
   async function init() {
     try {
+      // S6: Fetch CSRF token first
+      await _fetchCsrfToken();
+
       // Aktif oturum kontrolü
       const sess = await _api('GET', '/api/session');
-      if (sess.loggedIn && sess.user) {
-        _uid = sess.user.uid;
+      if (sess.loggedIn && sess.uid) {
+        _uid = sess.uid;
         const data = await _api('GET', '/api/userdata');
-        const defaultData = { txns: [], debts: [], goals: [], invoices: [], employees: [], logs: [], settings: {} };
+        const defaultData = {
+          txns: [], debts: [], goals: [], invoices: [], employees: [],
+          logs: [], settings: {}, stock: [], credits: [], subscriptions: [],
+          customers: [], projects: [], payrolls: [],
+          teamAccess: [], teamInvitations: [], pendingInvitations: []
+        };
         _mem['kt_d_' + _uid] = JSON.stringify(Object.assign(defaultData, data || {}));
 
-        // Kullanıcı listesini sadece admin çeksin
-        if (sess.user.username === (window.KASALY_ADMIN_USER || 'kasalyadmin2026@gmail.com')) {
+        // S4: Admin check using window.KASALY_ADMIN_USER
+        if (!window.KASALY_ADMIN_USER) {
+          console.error('[KasaDB] KASALY_ADMIN_USER not defined');
+        } else if (sess.username === window.KASALY_ADMIN_USER) {
           try {
             const users = await _api('GET', '/api/users');
             _mem['kt_users'] = JSON.stringify(users);
@@ -99,15 +132,26 @@
 
   /* ─── Auth ─── */
   async function login(username, password) {
+    // S6: Fetch CSRF token before login
+    await _fetchCsrfToken();
+
     const res = await _api('POST', '/api/login', { username, password });
     const u = res.user;
     _uid = u.uid;
+
     const data = await _api('GET', '/api/userdata');
-    const defaultData = { txns: [], debts: [], goals: [], invoices: [], employees: [], logs: [], settings: {} };
+    const defaultData = {
+      txns: [], debts: [], goals: [], invoices: [], employees: [],
+      logs: [], settings: {}, stock: [], credits: [], subscriptions: [],
+      customers: [], projects: [], payrolls: [],
+      teamAccess: [], teamInvitations: [], pendingInvitations: []
+    };
     _mem['kt_d_' + _uid] = JSON.stringify(Object.assign(defaultData, data || {}));
 
-    // Admin ise kullanıcı listesini de çek
-    if (u.username === (window.KASALY_ADMIN_USER || 'kasalyadmin2026@gmail.com')) {
+    // S4: Admin check using window.KASALY_ADMIN_USER
+    if (!window.KASALY_ADMIN_USER) {
+      console.error('[KasaDB] KASALY_ADMIN_USER not defined');
+    } else if (u.username === window.KASALY_ADMIN_USER) {
       try {
         const users = await _api('GET', '/api/users');
         _mem['kt_users'] = JSON.stringify(users);
@@ -118,8 +162,11 @@
 
   async function register(nu, password) {
     const res = await _api('POST', '/api/register', { ...nu, password });
-    _uid = res.uid;
-    return _uid;
+
+    // S6: Fetch CSRF token after registration
+    await _fetchCsrfToken();
+
+    return res;
   }
 
   async function logout() {
@@ -127,6 +174,7 @@
     if (_uid) delete _mem['kt_d_' + _uid];
     delete _mem['kt_users'];
     _uid = null;
+    _csrfToken = null; // S6: Clear CSRF token
     clearTimeout(_writeTimer);
   }
 
@@ -139,6 +187,7 @@
     if (_uid) delete _mem['kt_d_' + _uid];
     delete _mem['kt_users'];
     _uid = null;
+    _csrfToken = null; // S6: Clear CSRF token
     clearTimeout(_writeTimer);
   }
 
@@ -154,12 +203,13 @@
     return res.question;
   }
 
+  // S8: Send raw answer to server (bcrypt comparison happens server-side)
   async function verifySecurityAnswer(username, answerRaw) {
     const normalized = answerRaw.trim().toLowerCase();
-    const enc = new TextEncoder();
-    const buf = await crypto.subtle.digest('SHA-256', enc.encode(normalized));
-    const answerHash = 'sha256:' + Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
-    const res = await _api('POST', '/api/verify-security-answer', { username, answerHash });
+    const res = await _api('POST', '/api/verify-security-answer', {
+      username,
+      answer: normalized // Send raw answer, not hash
+    });
     return res;
   }
 
@@ -171,6 +221,33 @@
   async function getPublicStats() {
     try { return await _api('GET', '/api/stats'); }
     catch (e) { console.warn('[KasaDB] getPublicStats error', e); return { users: 0, txns: 0, goals: 0 }; }
+  }
+
+  /* ─── S1: Team Management ─── */
+  async function teamInvite(toUsername, role) {
+    return await _api('POST', '/api/team/invite', { toUsername, role });
+  }
+
+  async function teamRespond(invId, accepted) {
+    return await _api('POST', '/api/team/respond', { invId, accepted });
+  }
+
+  async function teamCancelInvite(invId) {
+    return await _api('POST', '/api/team/cancel-invite', { invId });
+  }
+
+  async function teamRemoveMember(username) {
+    return await _api('DELETE', '/api/team/member', { username });
+  }
+
+  async function getTeamAccounts() {
+    const res = await _api('GET', '/api/team/accounts');
+    return res.accounts || [];
+  }
+
+  /* ─── S11: Subscription Renewals ─── */
+  async function processSubscriptionRenewals() {
+    return await _api('POST', '/api/subscriptions/process-renewals');
   }
 
   /* ─── Admin ─── */
@@ -208,7 +285,10 @@
     init, getItem, setItem, removeItem, keys, flush, exportSnapshot, importSnapshot, stats,
     login, register, logout, resetPw, resetPwAnon, deleteAccount,
     updateProfile, verifySecurityAnswer, getSecurityQuestion,
-    getPublicStats, adminDeleteUser, adminSetBan, adminResetPassword,
+    getPublicStats,
+    teamInvite, teamRespond, teamCancelInvite, teamRemoveMember, getTeamAccounts,
+    processSubscriptionRenewals,
+    adminDeleteUser, adminSetBan, adminResetPassword,
     _api,
     get uid() { return _uid; },
     get client() { return null; }
