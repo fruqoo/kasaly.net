@@ -481,17 +481,24 @@ async function doLogin() {
   const rem = document.getElementById('li-remember').checked;
   if (!user || !pass) { showMsg('li-msg', 'Kullanıcı adı ve şifre zorunludur'); return; }
 
+  // [U4] Loading state
+  const btn = document.getElementById('li-btn');
+  const origText = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'Giriş yapılıyor...'; }
+
   try {
     document.getElementById('li-msg').style.display = 'none';
     const u = await KasaDB.login(user, pass);
 
     const ownAcc = { uid: u.uid, username: u.username, fullname: u.fullname, accType: u.accType, company: u.company || u.fullname, sector: '', taxNo: '', avatar: null, role: 'owner', isOwner: true };
-    const teamAccs = getTeamAccountsFor(u.username);
+    // [S1] Takım hesaplarını sunucudan al
+    let teamAccs = [];
+    try { teamAccs = await KasaDB.getTeamAccounts(); } catch (_) { }
     const allAccs = [ownAcc, ...teamAccs];
 
     if (allAccs.length > 1) {
       _pendingUser = u; _pendingRem = rem; _pendingAccounts = allAccs;
-      document.getElementById('ap-greeting').textContent = 'Hoş geldiniz, ' + escHtml(u.fullname || u.username) + '! 👋';
+      document.getElementById('ap-greeting').textContent = 'Hoş geldiniz, ' + (u.fullname || u.username) + '! 👋';
       renderAccountPicker(allAccs);
       goAuthPane(3);
     } else {
@@ -501,6 +508,8 @@ async function doLogin() {
     }
   } catch (e) {
     showMsg('li-msg', e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = origText; }
   }
 }
 
@@ -538,55 +547,36 @@ function loginAsAccount(idx) {
   enterApp();
 }
 
-// ── TEAM MANAGEMENT (Invitation-based) ──
-function sendTeamInvitation() {
+// [S1] sendTeamInvitation — sunucu üzerinden (güvenli)
+async function sendTeamInvitation() {
   const uname = document.getElementById('team-uname').value.trim();
   const role = document.getElementById('team-perm').value;
   if (!uname) { toast('Lütfen bir kullanıcı adı giriniz', 'error'); return; }
-  const target = getUsers().find(x => x.username.toLowerCase() === uname.toLowerCase());
-  if (!target) { toast('Belirtilen kullanıcı adına sahip bir üye bulunamadı', 'error'); return; }
-  if (target.uid === SESSION.uid) { toast('Kendinizi ekleyemezsiniz', 'error'); return; }
-  const d = D();
-  if (!d.teamAccess) d.teamAccess = [];
-  if (d.teamAccess.find(x => x.username.toLowerCase() === uname.toLowerCase())) {
-    toast('Bu kullanıcı zaten ekibinizde yer almaktadır', 'error'); return;
+  try {
+    await KasaDB.teamInvite(uname, role);
+    document.getElementById('team-uname').value = '';
+    // Yerel data’yı tazele
+    _D = null;
+    addLog('edit', 'auth', 'Takım daveti gönderildi: ' + uname, role);
+    toast('Davet başarıyla gönderildi ✓ — Kullanıcının onayı bekleniyor');
+    renderTeamList();
+  } catch (e) {
+    toast(e.message || 'Davet gönderilemedi', 'error');
   }
-  // Check for existing pending invitation
-  if (!d.teamInvitations) d.teamInvitations = [];
-  if (d.teamInvitations.find(x => x.username.toLowerCase() === uname.toLowerCase() && x.status === 'pending')) {
-    toast('Bu kullanıcıya zaten bekleyen bir davet gönderilmiştir', 'error'); return;
-  }
-  // Create invitation and write to target user
-  const inv = {
-    id: cryptoToken(),
-    fromUid: SESSION.uid,
-    fromUsername: SESSION.username,
-    fromCompany: SESSION.company || SESSION.fullname,
-    toUsername: target.username,
-    toUid: target.uid,
-    role,
-    status: 'pending',
-    sentAt: new Date().toISOString()
-  };
-  d.teamInvitations.push(inv);
-  saveD();
-  // Also write to target user's data so they see it on login
-  const targetData = getUserData(target.uid) || { txns: [], debts: [], goals: [], invoices: [], employees: [], logs: [], settings: { ...DEFAULT_S } };
-  if (!targetData.pendingInvitations) targetData.pendingInvitations = [];
-  targetData.pendingInvitations.push(inv);
-  saveUserData(target.uid, targetData);
-  document.getElementById('team-uname').value = '';
-  addLog('edit', 'auth', 'Takım daveti gönderildi: ' + target.username, role);
-  toast('Davet başarıyla gönderildi ✓ — Kullanıcının onayı bekleniyor');
-  renderTeamList();
 }
 
+// [S1] removeTeamMember — sunucu üzerinden
 async function removeTeamMember(username) {
   const ok = await confirmD(username + ' adlı kullanıcının yetkisini kaldırmak istiyor musunuz?');
   if (!ok) return;
-  const d = D(); d.teamAccess = (d.teamAccess || []).filter(x => x.username !== username);
-  saveD(); addLog('delete', 'auth', 'Takım üyesi kaldırıldı: ' + username, '');
-  toast('Kaldırıldı'); renderTeamList();
+  try {
+    await KasaDB.teamRemoveMember(username);
+    _D = null;
+    addLog('delete', 'auth', 'Takım üyesi kaldırıldı: ' + username, '');
+    toast('Kaldırıldı'); renderTeamList();
+  } catch (e) {
+    toast(e.message || 'Kaldırılamadı', 'error');
+  }
 }
 
 function renderTeamList() {
@@ -622,21 +612,16 @@ function renderTeamList() {
         </div>`).join('');
 }
 
-function cancelTeamInvitation(invId) {
-  const d = D();
-  if (!d.teamInvitations) return;
-  const inv = d.teamInvitations.find(x => x.id === invId);
-  if (!inv) return;
-  inv.status = 'cancelled';
-  // Also update target user's pending invitations
-  const targetData = getUserData(inv.toUid);
-  if (targetData && targetData.pendingInvitations) {
-    const pi = targetData.pendingInvitations.find(x => x.id === invId);
-    if (pi) { pi.status = 'cancelled'; saveUserData(inv.toUid, targetData); }
+// [S1] cancelTeamInvitation — sunucu üzerinden
+async function cancelTeamInvitation(invId) {
+  try {
+    await KasaDB.teamCancelInvite(invId);
+    _D = null;
+    toast('İptal edildi');
+    renderTeamList();
+  } catch (e) {
+    toast(e.message || 'İptal edilemedi', 'error');
   }
-  saveD();
-  toast('İptal edildi');
-  renderTeamList();
 }
 
 async function doRegister() {
@@ -670,17 +655,23 @@ async function doRegister() {
     showMsg('reg-msg', 'Devam edebilmek için Kullanım Koşulları\'nı okuduğunuzu onaylamanız gerekmektedir'); return;
   }
 
+  // [S8] securityAnswer raw olarak gönder — sunucu bcrypt ile hashler
   const nu = {
     username: user,
     fullname: fullname,
     accType: regAcct,
     company: regAcct === 'sirket' ? document.getElementById('r-company').value.trim() : '',
-    phone: phone,
-    birthdate: birthdate,
-    email: email,
+    phone,
+    birthdate,
+    email,
     securityQuestion: secQ,
-    securityAnswerHash: await hashAnswer(secA)
+    securityAnswer: secA  // raw cevap — server-side hash'lenecek
   };
+
+  // [U4] Loading state
+  const regBtn = document.getElementById('reg-btn');
+  const regOrigText = regBtn ? regBtn.textContent : '';
+  if (regBtn) { regBtn.disabled = true; regBtn.textContent = 'Kaydediliyor...'; }
 
   try {
     document.getElementById('reg-msg').style.display = 'none';
@@ -689,6 +680,8 @@ async function doRegister() {
     setTimeout(() => { goAuthPane(0); document.getElementById('li-user').value = user; }, 1800);
   } catch (e) {
     showMsg('reg-msg', e.message);
+  } finally {
+    if (regBtn) { regBtn.disabled = false; regBtn.textContent = regOrigText; }
   }
 }
 
@@ -707,6 +700,9 @@ function fpGo(step) {
 async function fpSubmit1() {
   const u = document.getElementById('fp-user').value.trim();
   if (!u) { showMsg('fp-msg', 'Lütfen kullanıcı adı girin'); return; }
+  // [U4] loading state
+  const b = document.getElementById('fp-btn1');
+  if (b) { b.disabled = true; b.textContent = 'Aranıyor...'; }
   try {
     const q = await KasaDB.getSecurityQuestion(u);
     _fpUser = u;
@@ -714,6 +710,8 @@ async function fpSubmit1() {
     fpGo(2);
   } catch (e) {
     showMsg('fp-msg', e.message);
+  } finally {
+    if (b) { b.disabled = false; b.textContent = 'Devam Et'; }
   }
 }
 
@@ -844,6 +842,22 @@ function enterApp() {
   setTimeout(() => { shell.style.display = 'none'; }, 450);
   document.getElementById('app').style.display = 'block';
 
+  // [S11] Abonelik yenilemelerini sunucu tarafında işle (client saati değil, sunucu saati kullanılır)
+  KasaDB._api('POST', '/api/subscriptions/process-renewals', {})
+    .then(res => {
+      if (res && res.renewed > 0) {
+        // Sunucu veri güncelledi — yerel cache'i tazele
+        KasaDB._api('GET', '/api/userdata').then(data => {
+          if (data && SESSION) {
+            const defaultData = { txns: [], debts: [], goals: [], invoices: [], employees: [], logs: [], settings: {} };
+            KasaDB.setItem('kt_d_' + SESSION.uid, JSON.stringify(Object.assign(defaultData, data)));
+            _D = null;
+          }
+        }).catch(() => { });
+      }
+    })
+    .catch(() => { }); // Sessiz hata — yenileme başarısız olsa da uygulama açılır
+
   if (checkProfileCompletion()) {
     initApp();
   }
@@ -891,22 +905,39 @@ function renderNav() {
   const items = isSirket() ? NAV_SIRKET : NAV_BIREYSEL;
   let html = items.map(item => {
     if (item.sep) return `<div class="nav-section">${item.sep}</div>`;
-    return `<div class="nav-item${item.id === curPage ? ' active' : ''}" onclick="goPage('${item.id}')">
-      <span class="nav-icon">${item.icon}</span>${item.label}
-      ${item.badge ? `<span class="nav-badge" id="${item.badge}" style="display:none">0</span>` : ''}
-    </div>`;
+    const isCur = item.id === curPage;
+    return `<button type="button" class="nav-item${isCur ? ' active' : ''}" onclick="goPage('${item.id}')" ${isCur ? 'aria-current="page"' : ''} aria-label="${item.label}">
+      <span class="nav-icon" aria-hidden="true">${item.icon}</span>${item.label}
+      ${item.badge ? `<span class="nav-badge" id="${item.badge}" style="display:none" aria-live="polite">0</span>` : ''}
+    </button>`;
   }).join('');
 
-  if (SESSION && SESSION.username === 'kasalyadmin2026@gmail.com') {
+  // [S4] Admin kontrolü — window.KASALY_ADMIN_USER kullan, fallback yok
+  if (SESSION && window.KASALY_ADMIN_USER && SESSION.username === window.KASALY_ADMIN_USER) {
     html += `<div class="nav-section">Geliştirici</div>`;
-    html += `<div class="nav-item${curPage === 'admin' ? ' active' : ''}" onclick="goPage('admin')">
+    html += `<button type="button" class="nav-item${curPage === 'admin' ? ' active' : ''}" onclick="goPage('admin')" aria-label="Kasaly Developer paneli">
       <span class="nav-icon">🛡️</span>Kasaly Developer
-    </div>`;
+    </button>`;
   }
-  document.getElementById('main-nav').innerHTML = html;
+  const navEl = document.getElementById('main-nav');
+  navEl.setAttribute('role', 'navigation');
+  navEl.setAttribute('aria-label', 'Ana menü');
+  navEl.innerHTML = html;
+}
+
+// [M5] Chart instance'larını yok et — bellek sızıntısını önler
+function destroyCharts() {
+  Object.keys(charts).forEach(key => {
+    if (charts[key] && typeof charts[key].destroy === 'function') {
+      charts[key].destroy();
+      delete charts[key];
+    }
+  });
 }
 
 function goPage(id) {
+  // [M5] Analytics sayfasından ayrılırken chart'ları temizle
+  if (curPage === 'analytics' && id !== 'analytics') destroyCharts();
   curPage = id;
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const pg = document.getElementById('page-' + id);
@@ -998,7 +1029,8 @@ function renderDash() {
     charts.week.data.datasets[1].data = wO;
     charts.week.update();
   } else {
-    charts.week = new Chart(document.getElementById('weekChart'), { type: 'bar', data: { labels: wL, datasets: [{ label: 'Giriş', data: wI, backgroundColor: 'rgba(34,197,94,.65)', borderRadius: 5 }, { label: 'Çıkış', data: wO, backgroundColor: 'rgba(239,68,68,.65)', borderRadius: 5 }] }, options: { responsive: true, plugins: { legend: { labels: { color: '#94a3b8', font: { size: 11 } } } }, scales: { x: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#64748b' } }, y: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#64748b', callback: v => cur() + v.toLocaleString('tr-TR') } } } } });
+    const wTheme = getChartTheme();
+    charts.week = new Chart(document.getElementById('weekChart'), { type: 'bar', data: { labels: wL, datasets: [{ label: 'Giriş', data: wI, backgroundColor: 'rgba(34,197,94,.65)', borderRadius: 5 }, { label: 'Çıkış', data: wO, backgroundColor: 'rgba(239,68,68,.65)', borderRadius: 5 }] }, options: { responsive: true, plugins: { legend: { labels: { color: wTheme.legendColor, font: { size: 11 } } } }, scales: { x: { grid: { color: wTheme.gridColor }, ticks: { color: wTheme.tickColor } }, y: { grid: { color: wTheme.gridColor }, ticks: { color: wTheme.tickColor, callback: v => cur() + v.toLocaleString('tr-TR') } } } } });
   }
 }
 
@@ -1006,6 +1038,9 @@ function renderDash() {
 //  TRANSACTIONS
 // ══════════════════════════════════════════════════════════
 let curTxnType = 'income';
+// [M3] Pagination
+const TXN_PAGE_SIZE = 50;
+let _txnPage = 0;
 
 function refreshCatFilter() {
   const sel = document.getElementById('txn-cat-f'); if (!sel) return;
@@ -1054,6 +1089,10 @@ function saveTxn() {
   const kdv = isSirket() ? parseInt(document.getElementById('f-kdv').value) || 0 : 0;
   if (!amount || amount <= 0) { toast('Geçerli bir tutar giriniz', 'error'); return; }
   if (!date) { toast('Tarih zorunludur', 'error'); return; }
+  // [L6] Gelecek tarih kontrolü — en fazla yarın girilir
+  const enteredDate = new Date(date);
+  const maxDate = new Date(); maxDate.setDate(maxDate.getDate() + 1);
+  if (enteredDate > maxDate) { toast('Gelecek tarihe işlem girilemez', 'error'); return; }
   const maxAmount = isSirket() ? 99_999_999 : 999_999;
   if (amount > maxAmount) { toast(`Maksimum tutar: ${fmt(maxAmount)}`, 'error'); return; }
   const d = D(); const eid = document.getElementById('f-id').value;
@@ -1078,7 +1117,7 @@ async function deleteTxn(id) {
   d.txns = d.txns.filter(x => x.id !== id); saveD(); renderTable(); if (curPage === 'dashboard') renderDash(); toast('Silindi');
 }
 
-function clearTxnF() { document.getElementById('txn-search').value = ''; document.getElementById('txn-type-f').value = ''; document.getElementById('txn-cat-f').value = ''; const n = new Date(); document.getElementById('txn-month-f').value = `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}`; renderTable(); }
+function clearTxnF() { _txnPage = 0; document.getElementById('txn-search').value = ''; document.getElementById('txn-type-f').value = ''; document.getElementById('txn-cat-f').value = ''; const n = new Date(); document.getElementById('txn-month-f').value = `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}`; renderTable(); }
 
 function renderTable() {
   const isSC = isSirket();
@@ -1096,9 +1135,15 @@ function renderTable() {
   document.getElementById('th-dept').style.display = isSC ? '' : 'none';
   document.getElementById('th-kdv').style.display = isSC ? '' : 'none';
   const tbody = document.getElementById('txn-tbody'), empty = document.getElementById('txn-empty'), summary = document.getElementById('txn-summary');
-  if (!data.length) { tbody.innerHTML = ''; empty.style.display = 'block'; summary.innerHTML = ''; return; }
+  if (!data.length) { tbody.innerHTML = ''; empty.style.display = 'block'; summary.innerHTML = ''; const pg = document.getElementById('txn-pagination'); if (pg) pg.innerHTML = ''; return; }
   empty.style.display = 'none';
-  tbody.innerHTML = data.map(t => `<tr>
+
+  // [M3] Pagination
+  const totalPages = Math.ceil(data.length / TXN_PAGE_SIZE);
+  if (_txnPage >= totalPages) _txnPage = totalPages - 1;
+  const pageData = data.slice(_txnPage * TXN_PAGE_SIZE, (_txnPage + 1) * TXN_PAGE_SIZE);
+
+  tbody.innerHTML = pageData.map(t => `<tr>
     <td style="color:var(--text-muted);font-size:12px">${escHtml(t.date)}</td>
     <td><div style="font-weight:500">${escHtml(t.desc) || '<span style="color:var(--text-muted)">—</span>'}</div>${t.note ? `<div style="font-size:11px;color:var(--text-muted)">${escHtml(t.note)}</div>` : ''}</td>
     <td><span class="badge badge-blue">${escHtml(t.cat)}</span></td>
@@ -1113,6 +1158,19 @@ function renderTable() {
   const totOut = data.filter(t => t.type === 'expense').reduce((a, t) => a + t.amount, 0);
   const net = totIn - totOut;
   summary.innerHTML = `<span style="color:var(--green)">Giriş: <strong>${fmt(totIn)}</strong></span><span style="color:var(--red)">Çıkış: <strong>${fmt(totOut)}</strong></span><span>Net: <strong style="color:${net >= 0 ? 'var(--green)' : 'var(--red)'}">${fmt(net)}</strong></span><span style="color:var(--text-muted)">${data.length} kayıt</span>`;
+
+  // [M3] Pagination controls
+  const pgEl = document.getElementById('txn-pagination');
+  if (pgEl) {
+    if (totalPages <= 1) { pgEl.innerHTML = ''; }
+    else {
+      pgEl.innerHTML = `<div style="display:flex;align-items:center;gap:10px;justify-content:center;padding:12px 0;font-size:13px">
+        <button class="btn btn-ghost" style="padding:5px 12px" onclick="_txnPage=Math.max(0,_txnPage-1);renderTable()" ${_txnPage === 0 ? 'disabled' : ''}>← Önceki</button>
+        <span style="color:var(--text-muted)">Sayfa <strong>${_txnPage + 1}</strong> / ${totalPages}</span>
+        <button class="btn btn-ghost" style="padding:5px 12px" onclick="_txnPage=Math.min(${totalPages - 1},_txnPage+1);renderTable()" ${_txnPage >= totalPages - 1 ? 'disabled' : ''}>Sonraki →</button>
+      </div>`;
+    }
+  }
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1153,6 +1211,13 @@ function saveInvoice() {
   if (!party) { toast('Müşteri/Tedarikçi adı zorunludur', 'error'); return; }
   if (!amount || amount <= 0) { toast('Tutar zorunludur', 'error'); return; }
   if (amount > 99_999_999) { toast('Maksimum tutar: ' + fmt(99_999_999), 'error'); return; }
+  // [L6] Gelecek tarih kontrolü
+  const invDateVal = document.getElementById('inv-date').value;
+  if (invDateVal) {
+    const invDate = new Date(invDateVal);
+    const invMax = new Date(); invMax.setDate(invMax.getDate() + 1);
+    if (invDate > invMax) { toast('Gelecek tarihe fatura girilemez', 'error'); return; }
+  }
   const d = D(); if (!d.invoices) d.invoices = [];
 
   const eid = document.getElementById('inv-id').value;
@@ -1315,6 +1380,11 @@ function saveDebt() {
   if (amount > maxDebt) { toast('Maksimum tutar: ' + fmt(maxDebt), 'error'); return; }
   const d = D(); const eid = document.getElementById('d-id').value;
   if (!document.getElementById('d-date').value) { toast('Başlangıç tarihi zorunludur', 'error'); return; }
+  // [L6] Gelecek tarih kontrolü
+  const debtDateVal = document.getElementById('d-date').value;
+  const debtDate = new Date(debtDateVal);
+  const debtMax = new Date(); debtMax.setDate(debtMax.getDate() + 1);
+  if (debtDate > debtMax) { toast('Gelecek tarihe borç girilemez', 'error'); return; }
   const obj = { id: eid ? Number(eid) : uid(), dtype: curDebtType, person, amount, paid: Math.min(paid, amount), desc: document.getElementById('d-desc').value.trim(), date: document.getElementById('d-date').value, due: document.getElementById('d-due').value, status: paid >= amount ? 'paid' : 'active' };
   if (eid) { d.debts[d.debts.findIndex(x => x.id === Number(eid))] = obj; addLog('edit', 'debt', 'Borç düzenlendi: ' + person, fmt(amount)); toast('Güncellendi ✓'); }
   else { d.debts.push(obj); addLog('add', 'debt', (curDebtType === 'owe' ? 'Borç' : 'Alacak') + ' eklendi: ' + person, fmt(amount)); toast('Eklendi ✓'); }
@@ -1422,10 +1492,25 @@ function renderDebts() {
 // ══════════════════════════════════════════════════════════
 //  ANALYTICS CHARTS
 // ══════════════════════════════════════════════════════════
+// [U6] Tema renklerini döndürür — light/dark mode için
+function getChartTheme() {
+  const isLight = D().settings.lightTheme;
+  return {
+    tickColor: isLight ? '#475569' : '#94a3b8',
+    gridColor: isLight ? 'rgba(0,0,0,.06)' : 'rgba(255,255,255,.04)',
+    legendColor: isLight ? '#475569' : '#94a3b8',
+    mutedColor: isLight ? '#64748b' : '#64748b',
+  };
+}
+
 function renderCharts() {
+  // [M5] Önceki chart instance'larını temizle (canvas çakışmasını önler)
+  destroyCharts();
+
   const d = D();
   const txns = d.txns || [];
   const now = new Date();
+  const theme = getChartTheme();
 
   // —— 1. AYLIK GİRİŞ / ÇIKIŞ BAR (6 Ay) ——
   const monthLabels = [], monthIn = [], monthOut = [];
@@ -1454,10 +1539,10 @@ function renderCharts() {
       },
       options: {
         responsive: true,
-        plugins: { legend: { labels: { color: '#94a3b8', font: { size: 11 } } } },
+        plugins: { legend: { labels: { color: theme.legendColor, font: { size: 11 } } } },
         scales: {
-          x: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#64748b' } },
-          y: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#64748b', callback: v => cur() + v.toLocaleString('tr-TR') } }
+          x: { grid: { color: theme.gridColor }, ticks: { color: theme.tickColor } },
+          y: { grid: { color: theme.gridColor }, ticks: { color: theme.tickColor, callback: v => cur() + v.toLocaleString('tr-TR') } }
         }
       }
     });
@@ -1516,7 +1601,7 @@ function renderCharts() {
         },
         options: {
           responsive: true,
-          plugins: { legend: { labels: { color: '#64748b' } } }
+          plugins: { legend: { labels: { color: theme.mutedColor } } }
         }
       });
     } else {
@@ -1537,7 +1622,7 @@ function renderCharts() {
           plugins: {
             legend: {
               position: 'bottom',
-              labels: { color: '#94a3b8', font: { size: 11 }, padding: 10, boxWidth: 12 }
+              labels: { color: theme.legendColor, font: { size: 11 }, padding: 10, boxWidth: 12 }
             },
             tooltip: {
               callbacks: {
@@ -1596,8 +1681,8 @@ function renderCharts() {
         responsive: true,
         plugins: { legend: { display: false } },
         scales: {
-          x: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#64748b', maxTicksLimit: 10 } },
-          y: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#64748b', callback: v => cur() + v.toLocaleString('tr-TR') } }
+          x: { grid: { color: theme.gridColor }, ticks: { color: theme.tickColor, maxTicksLimit: 10 } },
+          y: { grid: { color: theme.gridColor }, ticks: { color: theme.tickColor, callback: v => cur() + v.toLocaleString('tr-TR') } }
         }
       }
     });
@@ -1842,28 +1927,38 @@ async function changePassword() {
   const n1 = document.getElementById('cp-n1').value;
   const n2 = document.getElementById('cp-n2').value;
   if (!old) { toast('Mevcut şifreyi girin', 'error'); return; }
-  if (n1.length < 6) { toast('Yeni şifre en az 6 karakter', 'error'); return; }
+  // [L7/S2] validatePassword() kullan — kayıt ile aynı kural (8+ karakter)
+  const valPw = validatePassword(n1);
+  if (!valPw.ok) { toast(valPw.msg, 'error'); return; }
   if (n1 !== n2) { toast('Şifreler eşleşmiyor', 'error'); return; }
-  const users = getUsers();
-  const idx = users.findIndex(x => x.uid === SESSION.uid);
-  if (idx < 0) { toast('Mevcut şifre hatalı', 'error'); return; }
-  const storedPw = users[idx].password;
-  let oldMatch = false;
-  if (storedPw && storedPw.startsWith('sha256:')) {
-    oldMatch = storedPw === await hashPwAsync(old);
-  } else {
-    oldMatch = storedPw === hashPwLegacy(old);
+  try {
+    // [S2] Adım 1: Mevcut şifreyi sunucuda doğrula (bcrypt)
+    const check = await KasaDB._api('POST', '/api/verify-password', { password: old });
+    if (!check.ok) { toast('Mevcut şifre hatalı', 'error'); return; }
+    // [S2] Adım 2: Yeni şifreyi sunucuya kaydet
+    await KasaDB.resetPw(n1);
+    ['cp-old', 'cp-n1', 'cp-n2'].forEach(k => document.getElementById(k).value = '');
+    const fillEl = document.getElementById('cp-pw-fill');
+    if (fillEl) fillEl.style.width = '0%';
+    addLog('system', 'auth', 'Şifre değiştirildi', '');
+    toast('Şifre güncellendi ✓');
+  } catch (e) {
+    toast(e.message || 'Şifre değiştirilemedi', 'error');
   }
-  if (!oldMatch) { toast('Mevcut şifre hatalı', 'error'); return; }
-  users[idx].password = await hashPwAsync(n1);
-  saveUsers(users);
-  ['cp-old', 'cp-n1', 'cp-n2'].forEach(k => document.getElementById(k).value = '');
-  document.getElementById('cp-pw-fill').style.width = '0%';
-  addLog('system', 'auth', 'Şifre değiştirildi', '');
-  toast('Şifre güncellendi ✓');
 }
 
-function toggleSetting(el, key) { el.classList.toggle('on'); D().settings[key] = el.classList.contains('on'); saveD(); if (key === 'lightTheme') applyTheme(); toast('Kaydedildi ✓', 'info'); }
+function toggleSetting(el, key) {
+  el.classList.toggle('on');
+  D().settings[key] = el.classList.contains('on');
+  saveD();
+  if (key === 'lightTheme') {
+    applyTheme();
+    // [U6] Tema değişince chart'ları yeniden çiz — renkler güncellenir
+    if (curPage === 'analytics') { destroyCharts(); renderCharts(); }
+    else if (curPage === 'dashboard' && charts.week) { charts.week.destroy(); delete charts.week; renderDash(); }
+  }
+  toast('Kaydedildi ✓', 'info');
+}
 function setCurrency(v) { D().settings.currency = v; saveD(); document.querySelectorAll('.cur-sym').forEach(el => el.textContent = v); toast('Para birimi: ' + v, 'info'); }
 function setAccent(color, dim, el) { document.querySelectorAll('.swatch').forEach(s => s.classList.remove('on')); el.classList.add('on'); document.documentElement.style.setProperty('--green', color); document.documentElement.style.setProperty('--green-dim', dim); D().settings.accentColor = color; D().settings.accentDim = dim; saveD(); toast('Renk güncellendi ✓', 'info'); }
 function setSidebarW(v) { document.documentElement.style.setProperty('--sidebar-w', v + 'px'); document.getElementById('sb-width-v').textContent = v + 'px'; D().settings.sidebarWidth = parseInt(v); saveD(); }
@@ -2380,7 +2475,7 @@ function renderTutorialStep() {
 // ══════════════════════════════════════════════════════════
 //  STARTUP
 // ══════════════════════════════════════════════════════════
-Chart.defaults.color = '#94a3b8';
+// Chart.defaults.color is not set globally — each chart uses getChartTheme() for correct colors per theme
 Chart.defaults.font.family = "'DM Sans',sans-serif";
 let _slideInterval = null;
 
@@ -2432,7 +2527,7 @@ KasaDB.init().then(() => {
   const _debouncedRenderInvoices = debounce(renderInvoices, 220);
   (function attachDebouncedSearch() {
     const txnSearch = document.getElementById('txn-search');
-    if (txnSearch) txnSearch.addEventListener('input', _debouncedRenderTable);
+    if (txnSearch) txnSearch.addEventListener('input', () => { _txnPage = 0; _debouncedRenderTable(); });
     const debtSearch = document.getElementById('debt-search');
     if (debtSearch) debtSearch.addEventListener('input', _debouncedRenderDebts);
     const invSearch = document.getElementById('inv-search');
@@ -2445,11 +2540,12 @@ KasaDB.init().then(() => {
 //  ADMIN PANE & ACCOUNT DELETION
 // ══════════════════════════════════════════════════════════
 function renderAdmin() {
-  if (SESSION.username !== 'kasalyadmin2026@gmail.com') { goPage('dashboard'); return; }
+  // [S4] Admin kontrolü — window.KASALY_ADMIN_USER kullan, fallback yok
+  if (!window.KASALY_ADMIN_USER || SESSION.username !== window.KASALY_ADMIN_USER) { goPage('dashboard'); return; }
 
   let users = [];
   try { users = JSON.parse(KasaDB.getItem('kt_users') || '[]'); } catch (e) { }
-  const nonAdmin = users.filter(u => u.username !== 'kasalyadmin2026@gmail.com');
+  const nonAdmin = users.filter(u => u.username !== window.KASALY_ADMIN_USER);
 
   document.getElementById('admin-kpi-users').textContent = nonAdmin.length;
   document.getElementById('admin-kpi-sirket').textContent = nonAdmin.filter(u => u.accType === 'sirket').length;
@@ -2501,7 +2597,7 @@ function renderAdminUsers() {
 
   let users = [];
   try { users = JSON.parse(KasaDB.getItem('kt_users') || '[]'); } catch (e) { }
-  users = users.filter(u => u.username !== 'kasalyadmin2026@gmail.com');
+  users = users.filter(u => u.username !== window.KASALY_ADMIN_USER);
 
   if (sval) users = users.filter(u =>
     (u.username || '').toLowerCase().includes(sval) ||
@@ -2818,29 +2914,8 @@ function renderSubscriptions() {
   const now = new Date();
   const todayStr = today();
 
-  // Otomatik yenileme — oturumda sadece 1 kez çalışır (performans)
-  const _renewKey = 'subs_renewed_' + todayStr;
-  if (!sessionStorage.getItem(_renewKey)) {
-    let changed = false;
-    subs.forEach(s => {
-      if (s.status !== 'active' || !s.nextDate) return;
-      const next = new Date(s.nextDate);
-      if (next <= now) {
-        d.txns.push({ id: uid(), type: 'expense', cat: 'Fatura/Abonelik', desc: s.name + ' abonelik yenileme', amount: s.amount, date: todayStr, note: 'Otomatik kayıt' });
-        const nd = new Date(s.nextDate);
-        if (s.period === 'monthly') nd.setMonth(nd.getMonth() + 1);
-        else if (s.period === 'yearly') nd.setFullYear(nd.getFullYear() + 1);
-        else if (s.period === 'weekly') nd.setDate(nd.getDate() + 7);
-        else if (s.period === 'quarterly') nd.setMonth(nd.getMonth() + 3);
-        s.nextDate = nd.toISOString().split('T')[0];
-        s.lastPaid = todayStr;
-        changed = true;
-        addLog('pay', 'subscription', s.name + ' otomatik yenilendi', fmt(s.amount));
-      }
-    });
-    if (changed) { saveD(); sessionStorage.setItem(_renewKey, '1'); }
-    else sessionStorage.setItem(_renewKey, '1');
-  }
+  // [S11] Abonelik yenileme artık sunucu tarafında yapılıyor (POST /api/subscriptions/process-renewals)
+  // enterApp() içinde çağrılıyor — burada client-side yenileme yapılmıyor
 
   const active = subs.filter(s => s.status === 'active');
   const monthlyTotal = active.reduce((a, s) => {
@@ -3193,19 +3268,31 @@ function saveStockItem() {
 }
 
 function adjustStock(id) {
+  // [L2] prompt() yerine modal kullan
   const item = (D().stock || []).find(x => x.id === id);
   if (!item) return;
-  const val = prompt(`"${item.name}" için yeni stok miktarı girin (mevcut: ${item.quantity}):`);
-  if (val === null) return;
-  const n = parseInt(val);
+  // Modal'a mevcut değeri yaz
+  const modalEl = document.getElementById('adjust-stock-modal');
+  if (!modalEl) return;
+  document.getElementById('adj-stock-name').textContent = item.name;
+  document.getElementById('adj-stock-current').textContent = item.quantity;
+  document.getElementById('adj-stock-qty').value = item.quantity;
+  document.getElementById('adj-stock-id').value = id;
+  modalEl.classList.add('open');
+}
+
+function saveAdjustStock() {
+  const id = Number(document.getElementById('adj-stock-id').value);
+  const n = parseInt(document.getElementById('adj-stock-qty').value);
   if (isNaN(n) || n < 0) { toast('Geçersiz miktar', 'error'); return; }
   const d = D();
   const i = d.stock.findIndex(x => x.id === id);
+  if (i < 0) return;
   const diff = n - d.stock[i].quantity;
   d.stock[i].quantity = n;
   d.stock[i].updatedAt = new Date().toISOString();
-  if (diff !== 0) addLog('edit', 'stock', item.name + ' stok güncellendi', (diff > 0 ? '+' : '') + diff);
-  saveD(); renderStock(); toast('Stok güncellendi ✓');
+  if (diff !== 0) addLog('edit', 'stock', d.stock[i].name + ' stok güncellendi', (diff > 0 ? '+' : '') + diff);
+  saveD(); renderStock(); closeModal('adjust-stock-modal'); toast('Stok güncellendi ✓');
 }
 
 async function deleteStockItem(id) {
@@ -3377,6 +3464,15 @@ function renderPayroll() {
   const now = new Date();
   const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
+  // [L4] Tahmini hesaplama uyarısı
+  const disclaimerEl = document.getElementById('payroll-disclaimer');
+  if (disclaimerEl) {
+    disclaimerEl.style.display = 'flex';
+    disclaimerEl.innerHTML = `<span style="font-size:16px;flex-shrink:0">⚠️</span>
+      <span><strong>Bu hesaplamalar tahminidir.</strong> Gerçek bordro için muhasebeci veya muhasebe yazılımı kullanın.
+      Kullanılan oranlar: SGK işçi %14, gelir vergisi ~%15 (sabit, kademeli değil), damga %0.759, SGK işveren %15.5</span>`;
+  }
+
   const active = employees.filter(e => e.status === 'active');
   const totalGross = active.reduce((a, e) => a + (e.salary || 0), 0);
   // Türkiye: ~%15 işveren primi tahmini
@@ -3480,6 +3576,8 @@ function exportPayrollReport() {
     rows.push([e.fname + ' ' + e.lname, e.pos || '', gross.toFixed(2), sgk.toFixed(2), gv.toFixed(2), net.toFixed(2), empSGK.toFixed(2), (gross + empSGK).toFixed(2), pr?.status === 'paid' ? 'Ödendi' : 'Bekliyor']);
   });
   rows.push(['TOPLAM', '', totalGross.toFixed(2), '', '', totalNet.toFixed(2), '', totalEmployer.toFixed(2), '']);
+  rows.push(['', '', '', '', '', '', '', '', '']);
+  rows.push(['UYARI: Bu hesaplamalar tahminidir. SGK işçi %14, gelir vergisi ~%15 (sabit), damga %0.759, SGK işveren %15.5. Gerçek bordro için muhasebeci kullanın.', '', '', '', '', '', '', '', '']);
   const csv = '\uFEFF' + rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
