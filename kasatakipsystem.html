@@ -45,7 +45,7 @@
               autocomplete="current-password"><button class="apw-btn" onclick="togglePw('li-pass',this)">👁</button>
           </div>
           <label class="achk"><input type="checkbox" id="li-remember"><span>Beni hatırla (30 gün)</span></label>
-          <button class="abtn" type="button" onclick="doLogin()">Giriş Yap →</button>
+          <button class="abtn" type="button" id="li-btn" onclick="doLogin()">Giriş Yap →</button>
           <div class="adivider"><span>veya</span></div>
           <div class="alink">Hesabınız yok mu? <a onclick="goAuthPane(1)">Kayıt Olun</a></div>
           <div class="alink" style="margin-top:6px"><a onclick="goAuthPane(2)">Şifremi unuttum</a></div>
@@ -202,7 +202,8 @@
             <div style="display:flex;gap:8px">
               <button class="abtn secondary" type="button" onclick="rsGo(2)"
                 style="flex:0 0 auto;width:auto;padding:12px 20px">← Geri</button>
-              <button class="abtn" type="button" onclick="doRegister()" style="flex:1">Hesap Oluştur ✓</button>
+              <button class="abtn" type="button" id="reg-btn" onclick="doRegister()" style="flex:1">Hesap Oluştur
+                ✓</button>
             </div>
           </div>
         </div>
@@ -220,7 +221,8 @@
           <div id="fp-s1">
             <label class="alabel">E-posta / Kullanıcı Adı</label>
             <input class="ainput" type="text" id="fp-user" placeholder="kullanici@mail.com">
-            <button class="abtn" type="button" onclick="fpSubmit1()" style="margin-top:12px">Devam Et →</button>
+            <button class="abtn" type="button" id="fp-btn1" onclick="fpSubmit1()" style="margin-top:12px">Devam Et
+              →</button>
           </div>
 
           <!-- FP STEP 2: Güvenlik Sorusu -->
@@ -324,7 +326,7 @@
       <a href="index.html"
         style="display:flex;align-items:center;gap:6px;padding:9px 20px;color:var(--text-muted);font-size:12px;text-decoration:none;background:rgba(255,255,255,.015);border-bottom:1px solid rgba(255,255,255,.05);transition:color .2s"
         onmouseover="this.style.color='#fff'" onmouseout="this.style.color='var(--text-muted)'">← Web Sitesine Dön</a>
-      <nav id="main-nav"></nav>
+      <nav id="main-nav" role="navigation" aria-label="Ana menü"></nav>
       <div class="sidebar-bottom">
         <div class="user-pill">
           <div class="user-av" id="sidebar-av">A</div>
@@ -447,6 +449,8 @@
           <div id="txn-summary"
             style="display:flex;gap:20px;padding:14px 0 0;border-top:1px solid rgba(255,255,255,.06);font-size:13px;flex-wrap:wrap;">
           </div>
+          <!-- [M3] Pagination kontrolleri JS tarafından doldurulur -->
+          <div id="txn-pagination"></div>
         </div>
       </div>
 
@@ -882,11 +886,10 @@
               id="payroll-paid-count">—</div>
           </div>
         </div>
-        <div
-          style="background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.18);border-radius:10px;padding:12px 16px;margin-bottom:18px;font-size:12px;color:var(--text-muted);line-height:1.6">
-          ⚠️ <strong style="color:var(--text)">Önemli Not:</strong> SGK ve vergi hesaplamaları
-          <strong>tahminîdir</strong> — SGK işçi %14, gelir vergisi ~%15, damga vergisi %0.759. Yasal kesintiler için
-          lütfen muhasebeciye danışın.
+        <!-- Eski statik uyarı kaldırıldı — dinamik #payroll-disclaimer JS tarafından doldurulur -->
+        <!-- [L4] Tahmini hesaplama uyarısı — JS tarafından doldurulur -->
+        <div id="payroll-disclaimer"
+          style="display:none;gap:10px;align-items:flex-start;background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.22);border-radius:10px;padding:12px 16px;margin-bottom:18px;font-size:12px;color:var(--text-muted);line-height:1.6">
         </div>
         <div id="payroll-list"></div>
         <div id="payroll-empty" class="empty-state" style="display:none">
@@ -1876,6 +1879,25 @@
     </div>
   </div>
 
+  <!-- ─── STOK GÜNCELLE MODAL ─── -->
+  <div class="modal-overlay" id="adjust-stock-modal">
+    <div class="modal" style="max-width:380px">
+      <div class="modal-title">📦 Stok Güncelle</div>
+      <input type="hidden" id="adj-stock-id">
+      <div style="margin-bottom:16px;font-size:14px">
+        <strong id="adj-stock-name">Ürün</strong>
+        <span style="color:var(--text-muted);font-size:12px;margin-left:8px">Mevcut: <strong
+            id="adj-stock-current">0</strong></span>
+      </div>
+      <label class="form-label">Yeni Stok Miktarı *</label>
+      <input class="form-input" id="adj-stock-qty" type="number" min="0" placeholder="0">
+      <div style="display:flex;gap:10px;margin-top:20px">
+        <button class="btn btn-green" onclick="saveAdjustStock()" style="flex:1">💾 Güncelle</button>
+        <button class="btn btn-ghost" onclick="closeModal('adjust-stock-modal')" style="flex:1">İptal</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ─── PROJE MODAL ─── -->
   <div class="modal-overlay" id="project-modal">
     <div class="modal" style="max-width:540px;max-height:90vh;overflow-y:auto">
@@ -1927,11 +1949,20 @@
     </div>
   </div>
 
-  <!-- Kasaly DB Layer (MongoDB API) -->
+  <!-- [S4] Admin username & API URL — sunucu tarafından inject edilir, kaynak kodda hardcode edilmez -->
+  <!-- Bu değerleri Express'te res.render() veya bir /api/config endpoint'i ile sağlayın.         -->
+  <!-- Örnek Express middleware:                                                                    -->
+  <!--   app.get('/kasatakipsystem.html', (req, res) => {                                          -->
+  <!--     let html = fs.readFileSync('kasatakipsystem.html', 'utf8');                             -->
+  <!--     html = html.replace('__ADMIN_USER__', process.env.ADMIN_USERNAME || '');               -->
+  <!--     res.send(html);                                                                          -->
+  <!--   });                                                                                        -->
   <script>
-  window.KASALY_API_URL = 'https://kasaly-net.onrender.com';
-</script>
-<script src="db.js" defer></script>
+    window.KASALY_ADMIN_USER = '__ADMIN_USER__';
+    window.KASALY_API_URL = '';
+  </script>
+  <!-- Kasaly DB Layer (MongoDB API) -->
+  <script src="db.js" defer></script>
   <script src="kasatakipsystem.js" defer></script>
 
 </body>
