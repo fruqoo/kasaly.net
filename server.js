@@ -28,7 +28,7 @@ const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const nodemailer = require('nodemailer');
-const csurf = require('csurf');
+const { doubleCsrf } = require('csrf-csrf');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -263,18 +263,30 @@ app.use(session({
     }
 }));
 
-/* S6: CSRF Protection */
-const csrfProtection = csurf({ cookie: false }); // use session-based CSRF
-
-// CSRF token endpoint (GET - no CSRF required)
-app.get('/api/csrf-token', requireAuth, (req, res) => {
-    res.json({ csrfToken: req.csrfToken() });
+/* S6: CSRF Protection (csrf-csrf — session-based) */
+const { generateToken, doubleCsrfProtection } = doubleCsrf({
+    getSecret: () => SECRET,
+    cookieName: '__Host-psifi.x-csrf-token',
+    cookieOptions: {
+        sameSite: IS_PROD ? 'none' : 'lax',
+        secure: IS_PROD,
+        httpOnly: true,
+        path: '/'
+    },
+    size: 64,
+    ignoredMethods: ['GET', 'HEAD', 'OPTIONS']
 });
 
-// Apply CSRF to state-changing endpoints (after session middleware)
+// CSRF token endpoint (GET — no auth required, needed before login)
+app.get('/api/csrf-token', (req, res) => {
+    res.json({ csrfToken: generateToken(req, res) });
+});
+
+// Apply CSRF to all state-changing endpoints except public auth routes
 app.use('/api/', (req, res, next) => {
-    // Skip CSRF for GET requests and auth endpoints (login/register need to work before CSRF)
     if (req.method === 'GET' ||
+        req.method === 'HEAD' ||
+        req.method === 'OPTIONS' ||
         req.path === '/login' ||
         req.path === '/register' ||
         req.path === '/verify-security-answer' ||
@@ -282,7 +294,7 @@ app.use('/api/', (req, res, next) => {
         req.path === '/csrf-token') {
         return next();
     }
-    csrfProtection(req, res, next);
+    doubleCsrfProtection(req, res, next);
 });
 
 /* ══════════════════════════════════════════════════
