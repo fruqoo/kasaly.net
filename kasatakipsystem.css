@@ -816,6 +816,16 @@ select.ainput option {
   padding: 14px 20px 5px;
 }
 
+/* [U5] nav-item artık <button> — native button stillerini sıfırla */
+button.nav-item {
+  background: none;
+  border: none;
+  font-family: 'DM Sans', sans-serif;
+  text-align: left;
+  width: calc(100% - 20px);
+  /* margin: 1px 10px ile uyumlu */
+}
+
 .nav-item {
   display: flex;
   align-items: center;
@@ -1410,12 +1420,16 @@ select.ainput option {
 /* Table */
 .table-wrap {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  /* [U1] iOS momentum scroll */
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
+  min-width: 580px;
+  /* [U1] Mobilde yatay kaydırma için minimum genişlik */
 }
 
 th {
@@ -2596,9 +2610,204 @@ td.desc-cell {
   align-items: center;
 }
 
+/* [U1] 600px altında tablo sütunlarını gizle */
+@media (max-width: 600px) {
+
+  #th-dept,
+  #th-kdv,
+  td:nth-child(4):not(.keep-col),
+  td:nth-child(6):not(.keep-col) {
+    display: none;
+  }
+
+  .table-wrap table {
+    min-width: 360px;
+  }
+}
+
 /* KPI grid için daha sıkı responsive */
 @media (max-width: 600px) {
   .kpi-grid {
     grid-template-columns: 1fr 1fr !important;
   }
+}
+
+/* ══════════════════════════════════════════════
+   [M4] UTILITY CLASSES — inline style'ların yerini alır
+   ══════════════════════════════════════════════ */
+.flex {
+  display: flex;
+}
+
+.flex-col {
+  flex-direction: column;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.items-start {
+  align-items: flex-start;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.justify-center {
+  justify-content: center;
+}
+
+.justify-end {
+  justify-content: flex-end;
+}
+
+.flex-wrap {
+  flex-wrap: wrap;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+.flex-shrink-0 {
+  flex-shrink: 0;
+}
+
+.gap-1 {
+  gap: 6px;
+}
+
+.gap-2 {
+  gap: 10px;
+}
+
+.gap-3 {
+  gap: 14px;
+}
+
+.gap-4 {
+  gap: 18px;
+}
+
+.mt-1 {
+  margin-top: 6px;
+}
+
+.mt-2 {
+  margin-top: 12px;
+}
+
+.mt-3 {
+  margin-top: 18px;
+}
+
+.mb-1 {
+  margin-bottom: 6px;
+}
+
+.mb-2 {
+  margin-bottom: 12px;
+}
+
+.mb-3 {
+  margin-bottom: 18px;
+}
+
+.ml-auto {
+  margin-left: auto;
+}
+
+.p-2 {
+  padding: 12px;
+}
+
+.p-3 {
+  padding: 18px;
+}
+
+.p-4 {
+  padding: 22px;
+}
+
+.w-full {
+  width: 100%;
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+.text-green {
+  color: var(--green);
+}
+
+.text-red {
+  color: var(--red);
+}
+
+.text-yellow {
+  color: var(--yellow);
+}
+
+.text-sm {
+  font-size: 12px;
+}
+
+.text-xs {
+  font-size: 11px;
+}
+
+.font-bold {
+  font-weight: 700;
+}
+
+.font-syne {
+  font-family: 'Syne', sans-serif;
+}
+
+.rounded {
+  border-radius: var(--radius);
+}
+
+.rounded-sm {
+  border-radius: 8px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.relative {
+  position: relative;
+}
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+/* [M4] Light theme utility overrides */
+[data-theme='light'] .text-muted {
+  color: var(--text-muted);
 }
